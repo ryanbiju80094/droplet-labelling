@@ -1,0 +1,1077 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Droplet labelling</title>
+<style>
+:root{
+  --bg:#f6f7f9; --bg2:#fff; --bg3:#f1f3f6; --line:#e3e6eb; --line2:#cfd4dd;
+  --fg:#101828; --fg2:#4a5567; --fg3:#8d96a6;
+  --ink:#101828; --accent:#2563eb; --accent2:#1d4ed8; --accent-soft:#eef3ff;
+  --good:#047f5a; --bad:#c62f3a; --warn:#b4700c; --tile:#08090b;
+  --shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.07);
+  --shadow2:0 4px 14px rgba(16,24,40,.08);
+  --r:10px; --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0; background:var(--bg); color:var(--fg);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0; font-weight:600; letter-spacing:-.011em}
+h1{font-size:15px} h2{font-size:20px}
+h3{font-size:11.5px; color:var(--fg3); text-transform:uppercase; letter-spacing:.07em; font-weight:600}
+p{margin:0 0 10px}
+.muted{color:var(--fg3); font-style:normal}
+.hide{display:none !important}
+button{font:inherit; cursor:pointer; border-radius:8px; border:1px solid transparent; transition:.12s}
+input{font:inherit}
+::placeholder{color:#b3bac6}
+a{color:var(--accent)}
+
+#bar{position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:18px; padding:0 20px;
+  height:56px; background:rgba(255,255,255,.9); backdrop-filter:blur(12px); border-bottom:1px solid var(--line)}
+.brand{display:flex; align-items:center; gap:10px; min-width:150px}
+.brand .dot{width:8px; height:8px; border-radius:50%; background:var(--accent)}
+.brand p{margin:0; font-size:11px; color:var(--fg3)}
+#progwrap{flex:1; max-width:460px}
+.progline{display:flex; justify-content:space-between; font-size:11.5px; color:var(--fg2); margin-bottom:5px}
+.progline #progright{color:var(--fg3)}
+.progbar{height:4px; border-radius:3px; background:var(--bg3); overflow:hidden}
+.progbar i{display:block; height:100%; width:0; background:var(--accent); transition:width .25s}
+#topnav{margin-left:auto; display:flex; gap:8px; align-items:center}
+
+#savechip{display:flex; align-items:center; gap:6px; font-size:11.5px; padding:5px 10px; border-radius:20px;
+  border:1px solid var(--line2); background:var(--bg2); color:var(--fg2); white-space:nowrap}
+#savechip .sdot{width:7px; height:7px; border-radius:50%; background:var(--good); flex:none}
+#savechip.saving .sdot{background:var(--warn)}
+#savechip.warn{border-color:#f3c89a; background:#fff8ef; color:#8a5a12}
+#savechip.warn .sdot{background:var(--warn)}
+#savechip.err{border-color:#f0c2c6; background:#fff5f5; color:#a3242e; cursor:pointer}
+#savechip.err .sdot{background:var(--bad)}
+
+button.ghost{background:var(--bg2); border-color:var(--line2); color:var(--fg2); padding:7px 13px; font-size:13px; box-shadow:var(--shadow)}
+button.ghost:hover{background:var(--bg3); color:var(--fg)}
+button.ghost.active{background:var(--ink); border-color:var(--ink); color:#fff}
+button.tiny{padding:4px 9px; font-size:11.5px}
+button.primary{background:var(--ink); color:#fff; padding:11px 20px; font-weight:600; font-size:14px; border-color:var(--ink); box-shadow:var(--shadow)}
+button.primary:hover{background:#242f44}
+button.primary[disabled]{opacity:.45; cursor:default}
+button.danger{background:#c62f3a; color:#fff; padding:9px 17px; border-color:#c62f3a}
+
+.screen{padding:26px 20px 70px}
+#welcome{max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:16px}
+.card{background:var(--bg2); border:1px solid var(--line); border-radius:var(--r); padding:24px; box-shadow:var(--shadow)}
+.card h3{margin-bottom:14px}
+.intro p{color:var(--fg2)} .intro p:last-child{margin-bottom:0} .intro b{color:var(--fg)}
+.steps{counter-reset:s; margin:0; padding:0; list-style:none}
+.steps li{counter-increment:s; position:relative; padding:0 0 14px 34px; color:var(--fg2); font-size:13.5px}
+.steps li:last-child{padding-bottom:0}
+.steps li::before{content:counter(s); position:absolute; left:0; top:0; width:22px; height:22px; border-radius:50%;
+  background:var(--accent-soft); color:var(--accent2); font:600 11px/22px var(--mono); text-align:center}
+.steps li b{color:var(--fg)}
+.field{display:block; margin-bottom:18px}
+.field>span{display:block; font-size:12px; color:var(--fg2); margin-bottom:8px; font-weight:500}
+.field input{width:100%; max-width:320px; padding:10px 12px; border-radius:8px; background:var(--bg2); color:var(--fg); border:1px solid var(--line2)}
+.field input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft)}
+.banner{border-radius:var(--r); padding:14px 16px; font-size:13px; border:1px solid; margin-bottom:16px}
+.banner.warn{background:#fff8ef; border-color:#f3c89a; color:#7a4f10}
+.banner.warn b{color:#5c3b0c}
+.btnrow{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+.classlist{display:grid; gap:8px; margin-top:4px}
+.classlist div{display:flex; gap:11px; align-items:flex-start; font-size:13px; color:var(--fg2)}
+.classlist i.k{width:22px; height:22px; flex:none; border-radius:6px; color:#fff; font:600 11px/22px var(--mono);
+  text-align:center; font-style:normal}
+.classlist b{color:var(--fg)}
+
+/* ── label view ── */
+#label{display:grid; grid-template-columns:1fr 360px; gap:26px; max-width:1200px; margin:0 auto; align-items:start}
+.stage{display:flex; flex-direction:column; align-items:center; gap:14px}
+.imgwrap{position:relative; background:var(--tile); border:1px solid var(--line2); border-radius:12px; padding:10px; line-height:0; box-shadow:var(--shadow2)}
+#tile{width:416px; height:416px; display:block; background:var(--tile); border-radius:3px}
+#tile.pixel{image-rendering:pixelated}
+.savedtag{position:absolute; top:16px; right:16px; color:#fff; padding:4px 11px; border-radius:20px;
+  font-size:11.5px; line-height:1.4; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.viewctl{display:flex; gap:14px; align-items:center; flex-wrap:wrap; justify-content:center; font-size:11.5px; color:var(--fg3)}
+.viewctl label{display:flex; gap:7px; align-items:center}
+.viewctl input[type=range]{width:88px; accent-color:var(--accent)}
+.navrow{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center}
+.posn{font:12.5px var(--mono); color:var(--fg2); min-width:92px; text-align:center}
+.checkrow{display:flex; gap:9px; align-items:center; font-size:13px; color:var(--fg2); cursor:pointer}
+.checkrow input{accent-color:var(--accent)}
+
+.panel{background:var(--bg2); border:1px solid var(--line); border-radius:var(--r); padding:18px; box-shadow:var(--shadow); position:sticky; top:76px}
+.panel h3{margin-bottom:12px}
+.cats{display:grid; gap:6px; margin-bottom:12px}
+.cat{position:relative; display:flex; align-items:center; gap:11px; text-align:left; width:100%;
+  background:var(--bg2); border:1px solid var(--line); color:var(--fg); padding:8px 10px 11px; border-radius:9px; overflow:hidden}
+.cat:hover{border-color:var(--line2); background:var(--bg3)}
+.cat.on{border-color:var(--k); background:var(--bg3); box-shadow:inset 3px 0 0 var(--k)}
+.cat .key{width:24px; height:24px; flex:none; display:grid; place-items:center; border-radius:6px;
+  background:var(--k); color:#fff; font:600 12px/1 var(--mono)}
+.cat .txt{flex:1; display:flex; align-items:baseline; justify-content:space-between; gap:8px}
+.cat .txt b{font-size:13px}
+.cat .count{font:11.5px var(--mono); color:var(--fg3)}
+.cat .count.full{color:var(--good); font-weight:600}
+.cat .bar{position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--bg3)}
+.cat .bar i{display:block; height:100%; width:0; background:var(--k); transition:width .25s}
+.tallyfoot{display:flex; align-items:center; justify-content:space-between; gap:8px;
+  border-top:1px solid var(--line); padding-top:11px; font-size:11.5px; color:var(--fg3)}
+
+/* ── review ── */
+#review{max-width:1240px; margin:0 auto}
+.revhead{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:10px}
+.revtabs{display:flex; gap:6px; flex-wrap:wrap; flex:1}
+.revtab{display:flex; align-items:center; gap:7px; background:var(--bg2); border:1px solid var(--line2);
+  color:var(--fg2); padding:6px 11px; font-size:12.5px; box-shadow:var(--shadow)}
+.revtab:hover{background:var(--bg3)}
+.revtab.on{background:var(--ink); border-color:var(--ink); color:#fff}
+.revtab .sw{width:9px; height:9px; border-radius:2px; flex:none}
+.revtab b{font-variant-numeric:tabular-nums}
+.revtools{display:flex; gap:8px; align-items:center; font-size:12px}
+.revhint{font-size:12px; margin-bottom:14px}
+.revgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px;
+  user-select:none; -webkit-user-select:none}
+.rcard{position:relative; background:var(--bg2); border:1px solid var(--line); border-radius:8px; padding:5px; cursor:pointer; line-height:0}
+.rcard img{width:100%; aspect-ratio:1; border-radius:4px; background:var(--tile); display:block; -webkit-user-drag:none}
+.rcard:hover{border-color:var(--line2)}
+.rcard .tick{position:absolute; top:9px; right:9px; width:16px; height:16px; border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.7); background:rgba(0,0,0,.35)}
+.rcard.sel{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft)}
+.rcard.sel .tick{background:var(--accent); border-color:#fff}
+.rcard.sel .tick::after{content:""; position:absolute; left:4.5px; top:1.5px; width:4px; height:8px;
+  border:solid #fff; border-width:0 2px 2px 0; transform:rotate(43deg)}
+.revmore{display:flex; justify-content:center; margin-top:16px}
+.movebar{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:30;
+  display:flex; align-items:center; gap:9px; flex-wrap:wrap; justify-content:center; max-width:94vw;
+  background:#fff; border:1px solid var(--line2); border-radius:12px; padding:10px 14px; box-shadow:0 10px 30px rgba(16,24,40,.2)}
+#movecount{font-size:12.5px; font-weight:600; white-space:nowrap}
+.movebtns{display:flex; gap:5px; flex-wrap:wrap}
+.movebtn{display:flex; align-items:center; gap:6px; background:var(--bg2); border:1px solid var(--line2);
+  color:var(--fg2); padding:5px 9px; font-size:12px}
+.movebtn:hover{background:var(--k); border-color:var(--k); color:#fff}
+.movebtn i{width:15px; height:15px; border-radius:4px; background:var(--k); color:#fff;
+  display:grid; place-items:center; font:600 9px/1 var(--mono); font-style:normal}
+.movebtn:hover i{background:rgba(255,255,255,.25)}
+
+/* ── summary ── */
+#stats{max-width:1000px; margin:0 auto}
+#statsbody>section{margin-bottom:22px}
+.rephead{margin-bottom:18px}
+.rephead h2{font-size:24px}
+.rephead .sub{font-size:12.5px; color:var(--fg3); margin-top:4px}
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(176px,1fr)); gap:12px}
+.stat{background:var(--bg2); border:1px solid var(--line); border-radius:var(--r); padding:15px; box-shadow:var(--shadow)}
+.stat .k{font-size:11px; text-transform:uppercase; letter-spacing:.05em; font-weight:600;
+  min-height:2.4em; display:flex; align-items:flex-start}
+.stat .v{font:600 27px/1.15 -apple-system,sans-serif; margin:6px 0 3px; letter-spacing:-.025em}
+.stat .n{font-size:11.5px; color:var(--fg3)}
+.v.good{color:var(--good)} .v.warn{color:var(--warn)} .v.bad{color:var(--bad)}
+.wrap{background:var(--bg2); border:1px solid var(--line); border-radius:var(--r); padding:18px 20px; overflow-x:auto; box-shadow:var(--shadow)}
+.wrap h3{margin-bottom:12px}
+table{border-collapse:collapse; width:100%; font-size:12.5px}
+th,td{padding:7px 9px; text-align:right; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--fg3); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.05em}
+.cmlegend{font-size:11.5px; color:var(--fg3); margin-top:10px; max-width:70ch}
+.repfoot{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+
+/* ── overlays ── */
+.overlay{position:fixed; inset:0; z-index:40; background:rgba(16,24,40,.42); backdrop-filter:blur(3px); overflow-y:auto; padding:40px 18px}
+.sheet{max-width:760px; margin:0 auto; background:var(--bg2); border:1px solid var(--line); border-radius:14px;
+  padding:26px; box-shadow:0 20px 50px rgba(16,24,40,.22)}
+.sheet.narrow{max-width:440px}
+.sheethead{display:flex; justify-content:space-between; align-items:center; margin-bottom:12px}
+.modalbtns{display:flex; gap:10px; justify-content:flex-end; margin-top:18px}
+.gclass{display:flex; gap:14px; padding:14px 0; border-bottom:1px solid var(--line)}
+.gclass:last-child{border-bottom:none}
+.gkey{width:28px; height:28px; flex:none; display:grid; place-items:center; border-radius:8px;
+  background:var(--k); color:#fff; font:600 13px/1 var(--mono); font-style:normal}
+.gtx b{font-size:14px}
+.gtx p{font-size:12.5px; color:var(--fg2); margin:3px 0 0}
+.keys{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; font-size:12.5px; color:var(--fg2); margin-top:6px}
+.keys kbd{font:11px var(--mono); background:var(--bg3); border:1px solid var(--line2); border-bottom-width:2px;
+  border-radius:5px; padding:2px 6px; color:var(--fg)}
+.toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:60; background:var(--ink);
+  color:#fff; padding:9px 17px; border-radius:22px; font-size:13px; box-shadow:0 6px 20px rgba(16,24,40,.25)}
+#splash{position:fixed; inset:0; z-index:80; display:grid; place-items:center; background:var(--bg); font-size:13px; color:var(--fg3)}
+
+@media (max-width:1000px){
+  #label{grid-template-columns:1fr}
+  .panel{position:static}
+  #tile{width:min(84vw,416px); height:min(84vw,416px)}
+}
+</style>
+</head>
+<body>
+
+<div id="splash">loading droplets…</div>
+
+<header id="bar" class="hide">
+  <div class="brand">
+    <span class="dot"></span>
+    <div><h1>Droplet labelling</h1><p id="subtitle"></p></div>
+  </div>
+  <div id="progwrap" class="hide">
+    <div class="progline"><span id="progtext"></span><span id="progright"></span></div>
+    <div class="progbar"><i id="progfill"></i></div>
+  </div>
+  <nav id="topnav">
+    <span id="savechip" class="hide"><i class="sdot"></i><span id="savetext">saved</span></span>
+    <button class="ghost hide" id="tab-label">Label</button>
+    <button class="ghost hide" id="tab-review">Review</button>
+    <button class="ghost hide" id="tab-stats">Summary</button>
+    <button class="ghost hide" id="btn-guide">Guide</button>
+  </nav>
+</header>
+
+<!-- ───────────── welcome ───────────── -->
+<main id="welcome" class="screen hide">
+  <div class="card intro">
+    <h2>Droplet morphology labelling</h2>
+    <p>
+      You'll see one microscope image of a droplet at a time and choose which of six
+      categories it belongs to (plus <i>unsure</i>). The aim is at least
+      <b id="w-target">200</b> droplets in each category — roughly
+      <b>1,300–1,800</b> images in total. It goes quickly once you get going:
+      press <b>1–7</b> and it advances by itself.
+    </p>
+    <p class="muted">You can stop and come back whenever you like. Nothing is ever lost, and anything
+      you've already filed can be moved to a different category later from the Review tab.</p>
+  </div>
+
+  <div class="card">
+    <h3>The categories</h3>
+    <div class="classlist" id="w-classes"></div>
+  </div>
+
+  <div class="card" id="setup-card">
+    <h3>Get started</h3>
+    <div id="fs-ok">
+      <ol class="steps">
+        <li>Type your name below.</li>
+        <li>Click <b>Choose save file</b> and save a file called <b>droplet-labels.json</b> somewhere you'll find it again, like your Desktop.</li>
+        <li>Label away. Every single answer is written into that file the moment you make it — there is no save button and nothing to remember.</li>
+        <li>When you're done (or want to send progress), email that file back.</li>
+      </ol>
+    </div>
+    <div id="fs-no" class="banner warn hide">
+      <b>This browser can't save straight to a file.</b> Your work will be kept inside this
+      browser instead, which is usually fine but can be wiped if you clear your browsing data.
+      <b>Please use Google Chrome</b> for this task if you can. If you carry on here, use the
+      <b>Backup</b> button regularly.
+    </div>
+
+    <label class="field"><span>Your name</span><input id="in-name" type="text" placeholder="e.g. alex" maxlength="40"></label>
+    <div class="btnrow">
+      <button class="primary" id="btn-pick">Choose save file</button>
+      <button class="ghost hide" id="btn-nofile">Continue without a save file</button>
+    </div>
+  </div>
+
+  <div class="card" id="resume-card">
+    <h3>Already started?</h3>
+    <p class="muted" id="resume-text"></p>
+    <div class="btnrow">
+      <button class="primary" id="btn-resume">Continue where I left off</button>
+      <button class="ghost" id="btn-import">Open a saved file instead</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Restore from a file</h3>
+    <p class="muted">Changed computer, or something went wrong? Open a <b>droplet-labels.json</b>
+      you saved earlier and carry on from exactly where it stopped.</p>
+    <div class="btnrow"><button class="ghost" id="btn-import2">Open a saved file</button></div>
+  </div>
+</main>
+
+<!-- ───────────── label ───────────── -->
+<main id="label" class="screen hide">
+  <section class="stage">
+    <div class="imgwrap">
+      <img id="tile" alt="droplet" draggable="false">
+      <div id="savedtag" class="savedtag hide"></div>
+    </div>
+    <div class="viewctl">
+      <label title="Display size">size <input id="v-zoom" type="range" min="256" max="640" step="32" value="416"></label>
+      <label title="Brightness only — the image data is unchanged">gamma <input id="v-gamma" type="range" min="0.4" max="2.4" step="0.1" value="1"></label>
+      <button class="ghost tiny" id="v-pixel">pixels</button>
+      <button class="ghost tiny" id="v-invert">invert</button>
+      <button class="ghost tiny" id="v-reset">reset</button>
+    </div>
+    <div class="navrow">
+      <button class="ghost" id="btn-prev">← Prev</button>
+      <span id="posn" class="posn"></span>
+      <button class="ghost" id="btn-next">Next →</button>
+      <button class="ghost tiny" id="btn-clear">Clear (0)</button>
+      <label class="checkrow"><input id="in-auto" type="checkbox" checked><span>auto-advance</span></label>
+    </div>
+  </section>
+  <section class="panel">
+    <h3>Which is it? <i class="muted">— press 1–7</i></h3>
+    <div id="cats" class="cats"></div>
+    <div class="tallyfoot">
+      <span id="tallysum"></span>
+      <button class="ghost tiny" id="btn-jumpgap">Next unlabelled</button>
+    </div>
+  </section>
+</main>
+
+<!-- ───────────── review ───────────── -->
+<main id="review" class="screen hide">
+  <div class="revhead">
+    <div id="revtabs" class="revtabs"></div>
+    <div class="revtools">
+      <span id="revcount" class="muted"></span>
+      <button class="ghost tiny" id="rev-all">Select all</button>
+      <button class="ghost tiny" id="rev-none">Clear selection</button>
+    </div>
+  </div>
+  <p class="muted revhint">Click tiles to select them (shift-click for a range), then press <b>1–7</b> or use the bar at the bottom to move them somewhere else.</p>
+  <div id="revgrid" class="revgrid"></div>
+  <div id="revmore" class="revmore"></div>
+  <div id="movebar" class="movebar hide">
+    <span id="movecount"></span>
+    <div id="movebtns" class="movebtns"></div>
+    <button class="ghost tiny" id="move-unassign">Un-label</button>
+    <button class="ghost tiny" id="move-cancel">Cancel</button>
+  </div>
+</main>
+
+<!-- ───────────── summary ───────────── -->
+<main id="stats" class="screen hide"><div id="statsbody"></div></main>
+
+<!-- ───────────── overlays ───────────── -->
+<div id="guide" class="overlay hide">
+  <div class="sheet">
+    <div class="sheethead"><h2>Guide</h2><button class="ghost" id="guide-close">Close</button></div>
+    <p class="muted">One droplet per image. Label what you can actually see, not what you think it
+      ought to be. If two categories both seem right, pick the closer one and move on — you can
+      revisit it from Review later. If you genuinely can't tell, use <b>Unsure</b>.</p>
+    <div id="guidebody"></div>
+    <h3 style="margin:18px 0 8px">Keyboard</h3>
+    <div class="keys">
+      <kbd>1</kbd><span>…<kbd>7</kbd> choose a category</span>
+      <kbd>0</kbd><span>clear this one</span>
+      <kbd>←</kbd><span>go back / <kbd>→</kbd> or <kbd>space</kbd> go forward</span>
+      <kbd>R</kbd><span>review board</span>
+      <kbd>G</kbd><span>this guide</span>
+    </div>
+  </div>
+</div>
+
+<div id="modal" class="overlay hide">
+  <div class="sheet narrow">
+    <h2 id="modal-title"></h2><p id="modal-body"></p>
+    <div class="modalbtns">
+      <button class="ghost" id="modal-cancel">Cancel</button>
+      <button class="danger" id="modal-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hide"></div>
+<input id="filein" type="file" accept="application/json,.json" class="hide">
+
+<script>
+'use strict';
+
+/* ───────────────────────── constants ───────────────────────── */
+const CATS = [
+  { id:'homogeneous',       name:'Homogeneous',               desc:'No internal structure — just an even droplet, with only noise or a gentle brightness gradient.' },
+  { id:'giant_precipitate', name:'Giant precipitate',         desc:'One very large dense mass taking up much of the droplet. Looks solid and lumpy rather than a smooth round droplet.' },
+  { id:'aggregate_network', name:'Aggregate network',         desc:'Branched, chained or web-like material running across the droplet.' },
+  { id:'diffuse_aggregate', name:'Diffuse / small aggregate', desc:'Faint cloudy or mottled texture, or lots of tiny irregular specks, with nothing you could draw an outline around.' },
+  { id:'small_llps',        name:'Small LLPS',                desc:'Many small, round, sharply defined droplets inside the droplet.' },
+  { id:'large_llps',        name:'Large LLPS',                desc:'A few large, round, sharply defined droplets inside the droplet.' },
+  { id:'unsure',            name:'Unsure',                    desc:"Can't tell, or the image is unusable." },
+];
+const COLORS = {
+  homogeneous:'#5c6675', giant_precipitate:'#b02a37', aggregate_network:'#d2541c',
+  diffuse_aggregate:'#b4700c', small_llps:'#2563eb', large_llps:'#6d3bd4', unsure:'#8d96a6',
+};
+const CAT_IDS = CATS.map(c => c.id);
+const REAL = CAT_IDS.filter(c => c !== 'unsure');
+const FLOOR = 0.25;
+const PRIOR = {
+  'H':   { homogeneous:3.0 },
+  'W':   { diffuse_aggregate:1.5, homogeneous:1.5 },
+  'S-s': { small_llps:1.0, large_llps:1.0, giant_precipitate:0.5, diffuse_aggregate:0.5 },
+  'S-m': { large_llps:1.5, giant_precipitate:1.5 },
+  'S-l': { giant_precipitate:2.0, large_llps:1.0 },
+  'F-s': { small_llps:1.5, large_llps:1.5 },
+  'F-m': { large_llps:2.0, small_llps:1.0 },
+  'F-l': { large_llps:2.0, giant_precipitate:1.0 },
+  'P-s': { small_llps:2.0, diffuse_aggregate:1.0 },
+  'P-m': { small_llps:2.0, diffuse_aggregate:1.0 },
+  'P-l': { small_llps:1.5, aggregate_network:0.75, diffuse_aggregate:0.75 },
+  'A-s': { diffuse_aggregate:1.5, aggregate_network:1.5 },
+  'A-m': { aggregate_network:2.0, diffuse_aggregate:1.0 },
+  'A-l': { aggregate_network:2.0, giant_precipitate:1.0 },
+};
+const BACKUP_NAG = 120;   // labels without a file handle before we start nagging
+
+const $ = s => document.querySelector(s);
+const el = (t, cls, html) => { const n = document.createElement(t); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+
+let CANDS = [];                 // array from candidates.json
+const CAND = Object.create(null);// pool_idx -> candidate
+let STRATA = {}, STRATA_KEYS = [];
+
+/* ST = the whole project. This object IS the save file. */
+let ST = null;
+const UI = {
+  tab:'label', pos:0, shownAt:0, autoTimer:null,
+  view:{ zoom:416, gamma:1, pixel:false, invert:false },
+  rev:{ cat:'homogeneous', ids:[], shown:300, sel:new Set(), anchor:null },
+  handle:null, writing:false, dirty:false, lastBackup:0, hasFS:false,
+};
+
+/* ───────────────────────── tiny helpers ───────────────────────── */
+function toast(msg, ms = 1800) {
+  const t = $('#toast'); t.textContent = msg; t.classList.remove('hide');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.add('hide'), ms);
+}
+function confirmBox(title, body, ok = 'Confirm') {
+  return new Promise(res => {
+    $('#modal-title').textContent = title; $('#modal-body').textContent = body;
+    $('#modal-ok').textContent = ok; $('#modal').classList.remove('hide');
+    const done = v => { $('#modal').classList.add('hide'); res(v); };
+    $('#modal-ok').onclick = () => done(true);
+    $('#modal-cancel').onclick = () => done(false);
+  });
+}
+function nowISO() { return new Date().toISOString().replace(/\.\d+Z$/, 'Z'); }
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* ───────────────────────── storage ─────────────────────────
+   Two copies, always: the file the labeller picked (Chrome) and IndexedDB.
+   Whichever has more labels wins on load, so neither can silently lose work. */
+const IDB = {
+  db: null,
+  async open() {
+    if (this.db) return this.db;
+    this.db = await new Promise((res, rej) => {
+      const r = indexedDB.open('droplet-labels', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    return this.db;
+  },
+  async get(k) {
+    const db = await this.open();
+    return new Promise((res, rej) => {
+      const r = db.transaction('kv').objectStore('kv').get(k);
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+  },
+  async set(k, v) {
+    const db = await this.open();
+    return new Promise((res, rej) => {
+      const tx = db.transaction('kv', 'readwrite');
+      tx.objectStore('kv').put(v, k);
+      tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error);
+    });
+  },
+};
+
+function setChip(cls, text) {
+  const c = $('#savechip');
+  c.classList.remove('hide', 'saving', 'warn', 'err');
+  if (cls) c.classList.add(cls);
+  $('#savetext').textContent = text;
+}
+
+async function persist() {
+  if (!ST) return;
+  ST.updated = nowISO();
+  try { await IDB.set('state', ST); } catch (e) { /* keep going; the file is the primary */ }
+  if (!UI.handle) {
+    const since = ST.nLabels - UI.lastBackup;
+    if (since >= BACKUP_NAG) setChip('warn', `backup needed — ${since} labels since last`);
+    else setChip('', 'saved in browser');
+    return;
+  }
+  if (UI.writing) { UI.dirty = true; return; }
+  UI.writing = true;
+  setChip('saving', 'saving…');
+  try {
+    const w = await UI.handle.createWritable();
+    await w.write(JSON.stringify(ST));
+    await w.close();
+    setChip('', 'saved to file');
+  } catch (e) {
+    setChip('err', 'could not write file — click to fix');
+    $('#savechip').onclick = reconnectFile;
+  } finally {
+    UI.writing = false;
+    if (UI.dirty) { UI.dirty = false; persist(); }
+  }
+}
+
+async function reconnectFile() {
+  try {
+    const h = await window.showSaveFilePicker({
+      suggestedName: 'droplet-labels.json',
+      types: [{ description: 'Labelling progress', accept: { 'application/json': ['.json'] } }],
+    });
+    UI.handle = h;
+    await IDB.set('handle', h);
+    $('#savechip').onclick = null;
+    await persist();
+    toast('reconnected — your work is being saved again');
+  } catch (e) { /* cancelled */ }
+}
+
+/* ───────────────────────── project ───────────────────────── */
+function freshState(name, target, seed) {
+  return {
+    version: 1, app: 'droplet-goldset',
+    name: name || '', target: target || 200, seed,
+    created: nowISO(), updated: nowISO(),
+    order: [], ptr: {}, assign: {}, meta: {}, cursor: 0, nLabels: 0,
+  };
+}
+function buildStrata(seed) {
+  const by = {};
+  for (const c of CANDS) (by[c.stratum] = by[c.stratum] || []).push(c.i);
+  const rnd = mulberry32(seed >>> 0);
+  for (const s in by) {
+    const a = by[s];
+    for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(rnd() * (k + 1)); const t = a[k]; a[k] = a[j]; a[j] = t; }
+  }
+  STRATA = by; STRATA_KEYS = Object.keys(by).sort();
+}
+function countsOf() {
+  const c = {}; CAT_IDS.forEach(k => c[k] = 0);
+  for (const k in ST.assign) c[ST.assign[k]] = (c[ST.assign[k]] || 0) + 1;
+  return c;
+}
+
+/* The adaptive sampler: draw from whichever stratum is most likely to fill a
+   category that is still short. Same rule as the Python version. */
+function extend(upto) {
+  const served = new Set(ST.order);
+  const learned = {};
+  for (const k in ST.assign) {
+    const s = CAND[k].stratum;
+    (learned[s] = learned[s] || {});
+    learned[s][ST.assign[k]] = (learned[s][ST.assign[k]] || 0) + 1;
+  }
+  const counts = countsOf();
+  const rnd = Math.random;
+  while (ST.order.length < upto) {
+    const need = {};
+    for (const c of REAL) need[c] = Math.max(0, ST.target - counts[c]) / ST.target;
+    const util = {}; let totU = 0;
+    for (const s of STRATA_KEYS) {
+      const ids = STRATA[s];
+      let k = ST.ptr[s] || 0;
+      while (k < ids.length && served.has(ids[k])) k++;
+      ST.ptr[s] = k;
+      if (k >= ids.length) continue;
+      const pr = PRIOR[s] || {}, ln = learned[s] || {};
+      let tot = FLOOR * CAT_IDS.length;
+      for (const c in ln) tot += ln[c];
+      for (const c in pr) tot += pr[c];
+      let u = 0;
+      for (const c of REAL) u += (((ln[c] || 0) + (pr[c] || 0) + FLOOR) / tot) * need[c];
+      util[s] = u; totU += u;
+    }
+    const keys = Object.keys(util);
+    if (!keys.length) break;
+    let s;
+    if (totU <= 1e-9) s = keys[Math.floor(rnd() * keys.length)];
+    else {
+      let r = rnd() * totU, acc = 0; s = keys[0];
+      for (const k2 of keys) { acc += util[k2]; if (r <= acc) { s = k2; break; } }
+    }
+    const i = STRATA[s][ST.ptr[s]];
+    ST.ptr[s]++;
+    ST.order.push(i); served.add(i);
+  }
+}
+
+/* ───────────────────────── screens ───────────────────────── */
+function screen(name) {
+  UI.tab = name;
+  ['welcome', 'label', 'review', 'stats'].forEach(s => $('#' + s).classList.toggle('hide', s !== name));
+  const inProj = name !== 'welcome';
+  ['#tab-label', '#tab-review', '#tab-stats', '#btn-guide'].forEach(s => $(s).classList.toggle('hide', !inProj));
+  $('#progwrap').classList.toggle('hide', !inProj);
+  [['#tab-label', 'label'], ['#tab-review', 'review'], ['#tab-stats', 'stats']]
+    .forEach(([s, n]) => $(s).classList.toggle('active', n === name));
+  window.scrollTo(0, 0);
+}
+
+function buildCatButtons() {
+  const box = $('#cats'); box.innerHTML = '';
+  CATS.forEach((c, k) => {
+    const b = el('button', 'cat', `<i class="key">${k + 1}</i>
+      <div class="txt"><b>${esc(c.name)}</b><span class="count" data-c="${c.id}">0</span></div>
+      <div class="bar"><i data-bar="${c.id}"></i></div>`);
+    b.style.setProperty('--k', COLORS[c.id]); b.dataset.c = c.id; b.title = c.desc;
+    b.onclick = () => assign(c.id);
+    box.appendChild(b);
+  });
+  const mb = $('#movebtns'); mb.innerHTML = '';
+  CATS.forEach((c, k) => {
+    const b = el('button', 'movebtn', `<i>${k + 1}</i>${esc(c.name)}`);
+    b.style.setProperty('--k', COLORS[c.id]);
+    b.onclick = () => moveSelection(c.id);
+    mb.appendChild(b);
+  });
+  const wl = $('#w-classes'); wl.innerHTML = '';
+  CATS.forEach((c, k) => {
+    wl.appendChild(el('div', '', `<i class="k" style="background:${COLORS[c.id]}">${k + 1}</i>
+      <span><b>${esc(c.name)}</b> — ${esc(c.desc)}</span>`));
+  });
+  const gb = $('#guidebody'); gb.innerHTML = '';
+  CATS.forEach((c, k) => {
+    const d = el('div', 'gclass');
+    const key = el('i', 'gkey', String(k + 1)); key.style.setProperty('--k', COLORS[c.id]);
+    d.appendChild(key);
+    d.appendChild(el('div', 'gtx', `<b>${esc(c.name)}</b><p>${esc(c.desc)}</p>`));
+    gb.appendChild(d);
+  });
+}
+
+function paintTally() {
+  const t = ST.target, c = countsOf();
+  let done = 0;
+  CATS.forEach(cat => {
+    const n = c[cat.id] || 0, real = cat.id !== 'unsure';
+    if (real && n >= t) done++;
+    const cnt = document.querySelector(`.count[data-c="${cat.id}"]`);
+    if (cnt) { cnt.textContent = real ? `${n} / ${t}` : `${n}`; cnt.classList.toggle('full', real && n >= t); }
+    const bar = document.querySelector(`[data-bar="${cat.id}"]`);
+    if (bar) bar.style.width = real ? Math.min(100, 100 * n / t) + '%' : '0%';
+  });
+  const needed = REAL.reduce((s, k) => s + Math.max(0, t - (c[k] || 0)), 0);
+  $('#progtext').textContent = `${ST.nLabels.toLocaleString()} labelled · ${done} of 6 categories complete`;
+  $('#progright').textContent = needed ? `${needed.toLocaleString()} still needed` : 'all done — thank you!';
+  $('#progfill').style.width = (100 * (1 - needed / (6 * t))).toFixed(1) + '%';
+  $('#tallysum').textContent = `${ST.nLabels.toLocaleString()} of ${CANDS.length.toLocaleString()} images`;
+}
+
+/* ───────────────────────── labelling ───────────────────────── */
+function injectGamma() {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', 0); svg.setAttribute('height', 0); svg.style.position = 'absolute';
+  svg.innerHTML = `<filter id="gm" color-interpolation-filters="sRGB"><feComponentTransfer>
+    <feFuncR type="gamma" exponent="1"/><feFuncG type="gamma" exponent="1"/><feFuncB type="gamma" exponent="1"/>
+    </feComponentTransfer></filter>`;
+  document.body.appendChild(svg);
+  UI.gammaFuncs = svg.querySelectorAll('feFuncR,feFuncG,feFuncB');
+}
+function applyView() {
+  const t = $('#tile');
+  t.style.width = t.style.height = UI.view.zoom + 'px';
+  t.classList.toggle('pixel', UI.view.pixel);
+  UI.gammaFuncs.forEach(f => f.setAttribute('exponent', String(1 / UI.view.gamma)));
+  const f = [];
+  if (Math.abs(UI.view.gamma - 1) > .01) f.push('url(#gm)');
+  if (UI.view.invert) f.push('invert(1)');
+  t.style.filter = f.join(' ') || 'none';
+}
+
+function show(pos) {
+  clearTimeout(UI.autoTimer);
+  extend(Math.max(pos + 6, ST.order.length));
+  if (!ST.order.length) return;
+  UI.pos = Math.max(0, Math.min(pos, ST.order.length - 1));
+  ST.cursor = UI.pos;
+  const i = ST.order[UI.pos];
+  $('#tile').src = `img/${i}.png`;
+  UI.shownAt = performance.now();
+  applyView(); paintChoice(); paintTally();
+  $('#posn').textContent = `${UI.pos + 1} / ${ST.order.length}`;
+  for (let k = 1; k <= 5; k++) {        // warm the next few so it never waits
+    const j = ST.order[UI.pos + k];
+    if (j != null) new Image().src = `img/${j}.png`;
+  }
+}
+function paintChoice() {
+  const cur = ST.assign[String(ST.order[UI.pos])];
+  document.querySelectorAll('.cat').forEach(b => b.classList.toggle('on', b.dataset.c === cur));
+  const tag = $('#savedtag');
+  tag.classList.toggle('hide', !cur);
+  if (cur) {
+    tag.textContent = (CATS.find(x => x.id === cur) || {}).name || cur;
+    tag.style.background = COLORS[cur];
+  }
+}
+function assign(cat) {
+  clearTimeout(UI.autoTimer);
+  const i = String(ST.order[UI.pos]);
+  const prev = ST.meta[i] || {};
+  ST.assign[i] = cat;
+  ST.meta[i] = { ms: Math.round(performance.now() - UI.shownAt), ts: nowISO(), rev: (prev.rev || 0) + 1 };
+  ST.nLabels = Object.keys(ST.assign).length;
+  paintChoice(); paintTally(); persist();
+  if ($('#in-auto').checked) UI.autoTimer = setTimeout(() => show(UI.pos + 1), 340);
+}
+function clearOne() {
+  clearTimeout(UI.autoTimer);
+  delete ST.assign[String(ST.order[UI.pos])];
+  ST.nLabels = Object.keys(ST.assign).length;
+  paintChoice(); paintTally(); persist();
+}
+function jumpGap() {
+  for (let k = 0; k < ST.order.length; k++) {
+    const p = (UI.pos + 1 + k) % ST.order.length;
+    if (!ST.assign[String(ST.order[p])]) return show(p);
+  }
+  show(ST.order.length);
+}
+
+/* ───────────────────────── review ───────────────────────── */
+function idsFor(cat) {
+  if (cat === 'unlabelled') return ST.order.filter(i => !ST.assign[String(i)]);
+  const pos = new Map(ST.order.map((i, k) => [i, k]));
+  return Object.keys(ST.assign).filter(k => ST.assign[k] === cat).map(Number)
+    .sort((a, b) => (pos.get(a) ?? 1e9) - (pos.get(b) ?? 1e9));
+}
+function openReview(cat) {
+  screen('review');
+  if (cat && cat !== UI.rev.cat) { UI.rev.cat = cat; UI.rev.shown = 300; UI.rev.sel.clear(); UI.rev.anchor = null; }
+  buildRevTabs(); renderRev();
+}
+function buildRevTabs() {
+  const box = $('#revtabs'); box.innerHTML = '';
+  const c = countsOf();
+  CATS.concat([{ id: 'unlabelled', name: 'Unlabelled' }]).forEach(cat => {
+    const n = cat.id === 'unlabelled' ? ST.order.filter(i => !ST.assign[String(i)]).length : (c[cat.id] || 0);
+    const b = el('button', 'revtab' + (cat.id === UI.rev.cat ? ' on' : ''),
+      `<i class="sw" style="background:${COLORS[cat.id] || '#cfd4dd'}"></i>${esc(cat.name)} <b>${n}</b>`);
+    b.onclick = () => { UI.rev.cat = cat.id; UI.rev.shown = 300; openReview(cat.id); };
+    box.appendChild(b);
+  });
+}
+function renderRev() {
+  const all = idsFor(UI.rev.cat);
+  UI.rev.ids = all;
+  const page = all.slice(0, UI.rev.shown);
+  const grid = $('#revgrid'); grid.innerHTML = '';
+  $('#revcount').textContent = `${all.length.toLocaleString()} here`;
+  if (!all.length) {
+    grid.appendChild(el('p', 'muted', 'Nothing in this category yet.'));
+    $('#revmore').innerHTML = ''; paintMoveBar(); return;
+  }
+  page.forEach((i, k) => {
+    const c = el('div', 'rcard' + (UI.rev.sel.has(i) ? ' sel' : ''));
+    c.innerHTML = `<img loading="lazy" src="img/${i}.png" alt=""><span class="tick"></span>`;
+    c.onclick = e => clickTile(i, k, e);
+    grid.appendChild(c);
+  });
+  const more = $('#revmore'); more.innerHTML = '';
+  if (all.length > page.length) {
+    const b = el('button', 'ghost', `Load more (${page.length} of ${all.length})`);
+    b.onclick = () => { UI.rev.shown += 300; renderRev(); };
+    more.appendChild(b);
+  }
+  paintMoveBar();
+}
+function clickTile(i, k, e) {
+  e.preventDefault();
+  const ws = window.getSelection(); if (ws && ws.rangeCount) ws.removeAllRanges();
+  if (e.shiftKey && UI.rev.anchor != null) {
+    const a = Math.min(UI.rev.anchor, k), b = Math.max(UI.rev.anchor, k);
+    for (let j = a; j <= b; j++) UI.rev.sel.add(UI.rev.ids[j]);
+  } else {
+    UI.rev.sel.has(i) ? UI.rev.sel.delete(i) : UI.rev.sel.add(i);
+    UI.rev.anchor = k;
+  }
+  renderRev();
+}
+function paintMoveBar() {
+  const n = UI.rev.sel.size;
+  $('#movebar').classList.toggle('hide', !n);
+  $('#movecount').textContent = `${n} selected`;
+}
+function moveSelection(cat) {
+  const ids = [...UI.rev.sel];
+  if (!ids.length) return;
+  ids.forEach(i => {
+    const k = String(i); const prev = ST.meta[k] || {};
+    ST.assign[k] = cat;
+    ST.meta[k] = { ms: prev.ms || 0, ts: nowISO(), rev: (prev.rev || 0) + 1 };
+    if (!ST.order.includes(i)) ST.order.push(i);
+  });
+  ST.nLabels = Object.keys(ST.assign).length;
+  UI.rev.sel.clear(); UI.rev.anchor = null;
+  persist(); buildRevTabs(); renderRev(); paintTally();
+  toast(`moved ${ids.length} to ${(CATS.find(c => c.id === cat) || {}).name || cat}`);
+}
+function unassignSelection() {
+  const ids = [...UI.rev.sel];
+  if (!ids.length) return;
+  ids.forEach(i => delete ST.assign[String(i)]);
+  ST.nLabels = Object.keys(ST.assign).length;
+  UI.rev.sel.clear(); UI.rev.anchor = null;
+  persist(); buildRevTabs(); renderRev(); paintTally();
+  toast(`un-labelled ${ids.length}`);
+}
+
+/* ───────────────────────── summary & export ───────────────────────── */
+function csvText() {
+  const cols = ['pool_idx', 'category', 'old_class', 'stratum', 'exp', 'wl',
+    'was_hand_labelled', 'is_test_exp', 'dom_area_frac', 'ts'];
+  const rows = Object.keys(ST.assign).map(Number).sort((a, b) => a - b).map(i => {
+    const m = CAND[i], md = ST.meta[String(i)] || {};
+    return [i, ST.assign[String(i)], m.old, m.stratum, m.exp, m.wl, m.hand, m.is_test_exp, m.dom_area_frac, md.ts || ''].join(',');
+  });
+  return cols.join(',') + '\n' + rows.join('\n') + '\n';
+}
+function download(text, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function safeName() { return (ST.name || 'labels').replace(/[^A-Za-z0-9_-]+/g, '_'); }
+
+function openStats() {
+  screen('stats');
+  const c = countsOf(), t = ST.target;
+  const exps = {}; CAT_IDS.forEach(k => exps[k] = new Set());
+  const cross = {}; CAT_IDS.forEach(k => cross[k] = {});
+  for (const k in ST.assign) {
+    const m = CAND[k], cat = ST.assign[k];
+    exps[cat].add(m.exp);
+    cross[cat][m.old] = (cross[cat][m.old] || 0) + 1;
+  }
+  const parts = [`<div class="rephead"><div><h2>${esc(ST.name || 'Progress')}</h2>
+    <div class="sub">${ST.nLabels.toLocaleString()} labelled · ${ST.order.length.toLocaleString()} seen ·
+    ${CANDS.length.toLocaleString()} available · started ${new Date(ST.created).toLocaleDateString()}</div></div></div>`];
+
+  parts.push('<section class="cards">' + CATS.map(cat => {
+    const n = c[cat.id] || 0, real = cat.id !== 'unsure';
+    const cls = !real ? '' : n >= t ? 'good' : n >= t * .5 ? 'warn' : 'bad';
+    return `<div class="stat"><div class="k" style="color:${COLORS[cat.id]}">${esc(cat.name)}</div>
+      <div class="v ${cls}">${n}</div>
+      <div class="n">${real ? (n >= t ? 'target met' : `${t - n} to go`) : 'no target'} · ${exps[cat.id].size} experiments</div></div>`;
+  }).join('') + '</section>');
+
+  const olds = ['H', 'W', 'S', 'F', 'P', 'A'];
+  let tbl = '<table><tr><th>category</th>' + olds.map(o => `<th>${o}</th>`).join('') + '<th>total</th></tr>';
+  CATS.forEach(cat => {
+    const row = cross[cat.id] || {};
+    const tot = olds.reduce((a, o) => a + (row[o] || 0), 0);
+    tbl += `<tr><td><b style="color:${COLORS[cat.id]}">${esc(cat.name)}</b></td>` +
+      olds.map(o => `<td>${row[o] || ''}</td>`).join('') + `<td><b>${tot}</b></td></tr>`;
+  });
+  tbl += '</table>';
+  parts.push(`<section class="wrap"><h3>Spread across the earlier labels</h3>${tbl}
+    <div class="cmlegend">Columns are an older, rougher set of labels kept only for checking coverage
+    (H even, W faint texture, S one body, F a few bodies, P many specks, A ragged). They never affect
+    what you are shown, and you are not expected to agree with them.</div></section>`);
+
+  parts.push(`<section class="wrap"><h3>Send your work</h3>
+    <div class="repfoot">
+      <button class="ghost" id="dl-json">Download progress file</button>
+      <button class="ghost" id="dl-csv">Download CSV</button>
+      <button class="ghost" id="btn-back2">Back to labelling</button>
+    </div>
+    <p class="muted" style="margin-top:10px">Either file is fine to email. The progress file can also be
+    re-opened later to carry on from exactly this point.</p></section>`);
+
+  $('#statsbody').innerHTML = parts.join('');
+  $('#dl-json').onclick = () => { UI.lastBackup = ST.nLabels; download(JSON.stringify(ST), `droplet-labels-${safeName()}.json`, 'application/json'); persist(); };
+  $('#dl-csv').onclick = () => download(csvText(), `droplet-labels-${safeName()}.csv`, 'text/csv');
+  $('#btn-back2').onclick = () => { screen('label'); show(UI.pos); };
+}
+
+/* ───────────────────────── start / resume ───────────────────────── */
+function begin(state) {
+  ST = state;
+  buildStrata(ST.seed);
+  ST.nLabels = Object.keys(ST.assign).length;
+  $('#subtitle').textContent = `${ST.name || 'unnamed'} · target ${ST.target} each`;
+  $('#bar').classList.remove('hide');
+  UI.lastBackup = ST.nLabels;
+  extend(8);
+  screen('label');
+  show(Math.min(ST.cursor || 0, Math.max(0, ST.order.length - 1)));
+  persist();
+}
+
+async function startNew() {
+  const name = $('#in-name').value.trim();
+  const seed = (Math.random() * 1e9) >>> 0;
+  begin(freshState(name, 200, seed));
+}
+
+function validState(s) {
+  return s && typeof s === 'object' && s.app === 'droplet-goldset' && s.assign && s.order && s.seed != null;
+}
+
+async function boot() {
+  injectGamma(); buildCatButtons(); wireAll();
+  CANDS = await (await fetch('candidates.json', { cache: 'force-cache' })).json();
+  CANDS.forEach(c => CAND[c.i] = c);
+  $('#splash').remove();
+  $('#bar').classList.remove('hide');
+  $('#w-target').textContent = '200';
+
+  UI.hasFS = typeof window.showSaveFilePicker === 'function';
+  $('#fs-ok').classList.toggle('hide', !UI.hasFS);
+  $('#fs-no').classList.toggle('hide', UI.hasFS);
+  $('#btn-nofile').classList.toggle('hide', UI.hasFS);
+  $('#btn-pick').textContent = UI.hasFS ? 'Choose save file' : 'Start labelling';
+
+  // resume?
+  let saved = null, handle = null;
+  try { saved = await IDB.get('state'); } catch (e) { }
+  try { handle = await IDB.get('handle'); } catch (e) { }
+  if (validState(saved) && saved.nLabels > 0) {
+    UI.pendingState = saved; UI.pendingHandle = handle;
+    $('#resume-card').classList.remove('hide');
+    $('#resume-text').textContent =
+      `${saved.name || 'Your session'} — ${Object.keys(saved.assign).length.toLocaleString()} images labelled, ` +
+      `last worked on ${new Date(saved.updated).toLocaleString()}.`;
+    $('#setup-card').classList.add('hide');
+  } else {
+    $('#resume-card').classList.add('hide');
+  }
+  screen('welcome');
+}
+
+async function doResume() {
+  const s = UI.pendingState;
+  if (UI.pendingHandle) {
+    try {
+      let p = await UI.pendingHandle.queryPermission({ mode: 'readwrite' });
+      if (p === 'prompt') p = await UI.pendingHandle.requestPermission({ mode: 'readwrite' });
+      if (p === 'granted') {
+        UI.handle = UI.pendingHandle;
+        // the file is the source of truth if it somehow has more in it
+        try {
+          const txt = await (await UI.handle.getFile()).text();
+          const fromFile = JSON.parse(txt);
+          if (validState(fromFile) && Object.keys(fromFile.assign).length > Object.keys(s.assign).length) {
+            return begin(fromFile);
+          }
+        } catch (e) { }
+      }
+    } catch (e) { }
+  }
+  begin(s);
+}
+
+function importFile() {
+  const inp = $('#filein');
+  inp.value = '';
+  inp.onchange = async () => {
+    const f = inp.files && inp.files[0];
+    if (!f) return;
+    try {
+      const s = JSON.parse(await f.text());
+      if (!validState(s)) return toast('that does not look like a progress file');
+      if (UI.hasFS) {
+        try {
+          UI.handle = await window.showSaveFilePicker({
+            suggestedName: f.name || 'droplet-labels.json',
+            types: [{ description: 'Labelling progress', accept: { 'application/json': ['.json'] } }],
+          });
+          await IDB.set('handle', UI.handle);
+        } catch (e) { }
+      }
+      begin(s);
+      toast(`restored ${Object.keys(s.assign).length.toLocaleString()} labels`);
+    } catch (e) { toast('could not read that file'); }
+  };
+  inp.click();
+}
+
+function wireAll() {
+  $('#btn-pick').onclick = async () => {
+    if (UI.hasFS) {
+      try {
+        UI.handle = await window.showSaveFilePicker({
+          suggestedName: 'droplet-labels.json',
+          types: [{ description: 'Labelling progress', accept: { 'application/json': ['.json'] } }],
+        });
+        await IDB.set('handle', UI.handle);
+      } catch (e) { return; }   // cancelled — stay on the welcome screen
+    }
+    startNew();
+  };
+  $('#btn-nofile').onclick = () => startNew();
+  $('#btn-resume').onclick = doResume;
+  $('#btn-import').onclick = importFile;
+  $('#btn-import2').onclick = importFile;
+
+  $('#tab-label').onclick = () => { screen('label'); show(UI.pos); };
+  $('#tab-review').onclick = () => openReview(UI.rev.cat);
+  $('#tab-stats').onclick = openStats;
+  $('#btn-guide').onclick = () => $('#guide').classList.remove('hide');
+  $('#guide-close').onclick = () => $('#guide').classList.add('hide');
+  $('#btn-prev').onclick = () => show(UI.pos - 1);
+  $('#btn-next').onclick = () => show(UI.pos + 1);
+  $('#btn-clear').onclick = clearOne;
+  $('#btn-jumpgap').onclick = jumpGap;
+  $('#rev-all').onclick = () => { UI.rev.ids.slice(0, UI.rev.shown).forEach(i => UI.rev.sel.add(i)); renderRev(); };
+  $('#rev-none').onclick = () => { UI.rev.sel.clear(); UI.rev.anchor = null; renderRev(); };
+  $('#move-cancel').onclick = () => { UI.rev.sel.clear(); renderRev(); };
+  $('#move-unassign').onclick = unassignSelection;
+
+  const z = $('#v-zoom'), g = $('#v-gamma');
+  z.oninput = () => { UI.view.zoom = +z.value; applyView(); };
+  g.oninput = () => { UI.view.gamma = +g.value; applyView(); };
+  $('#v-pixel').onclick = () => { UI.view.pixel = !UI.view.pixel; applyView(); };
+  $('#v-invert').onclick = () => { UI.view.invert = !UI.view.invert; applyView(); };
+  $('#v-reset').onclick = () => { UI.view = { zoom: 416, gamma: 1, pixel: false, invert: false }; z.value = 416; g.value = 1; applyView(); };
+
+  document.addEventListener('keydown', e => {
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (!ST) return;
+    const k = e.key;
+    if (k === 'Escape') {
+      if (!$('#guide').classList.contains('hide')) return $('#guide').classList.add('hide');
+      if (!$('#modal').classList.contains('hide')) return $('#modal-cancel').click();
+      if (UI.tab === 'review' && UI.rev.sel.size) { UI.rev.sel.clear(); return renderRev(); }
+      return;
+    }
+    if (UI.tab === 'review') {
+      if (k >= '1' && k <= '7') { e.preventDefault(); return moveSelection(CATS[+k - 1].id); }
+      if (k === 'Backspace' || k === 'Delete') { e.preventDefault(); return unassignSelection(); }
+      return;
+    }
+    if (UI.tab !== 'label') return;
+    if (k >= '1' && k <= '7') { e.preventDefault(); return assign(CATS[+k - 1].id); }
+    if (k === '0') { e.preventDefault(); return clearOne(); }
+    if (k === 'ArrowRight' || k === ' ' || k === 'Enter') { e.preventDefault(); return show(UI.pos + 1); }
+    if (k === 'ArrowLeft') { e.preventDefault(); return show(UI.pos - 1); }
+    if (k.toLowerCase() === 'g') { e.preventDefault(); return $('#guide').classList.toggle('hide'); }
+    if (k.toLowerCase() === 'r') { e.preventDefault(); return openReview(UI.rev.cat); }
+  });
+
+  // last-ditch flush if the tab is closed mid-write
+  window.addEventListener('pagehide', () => { if (ST) { try { IDB.set('state', ST); } catch (e) { } } });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && ST) persist(); });
+  window.addEventListener('beforeunload', e => {
+    if (ST && !UI.handle && ST.nLabels - UI.lastBackup >= BACKUP_NAG) { e.preventDefault(); e.returnValue = ''; }
+  });
+}
+
+boot().catch(e => {
+  document.body.innerHTML = `<pre style="padding:40px;color:#c62f3a;font:13px monospace">Could not start:\n${esc(e && e.message || e)}</pre>`;
+});
+</script>
+</body>
+</html>
