@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Droplet labelling</title>
+<title>BSA droplet labelling</title>
 <style>
 :root{
   --bg:#f6f7f9; --bg2:#fff; --bg3:#f1f3f6; --line:#e3e6eb; --line2:#cfd4dd;
@@ -212,7 +212,7 @@ th{color:var(--fg3); font-weight:600; font-size:11px; text-transform:uppercase; 
 <header id="bar" class="hide">
   <div class="brand">
     <span class="dot"></span>
-    <div><h1>Droplet labelling</h1><p id="subtitle"></p></div>
+    <div><h1>BSA droplet labelling</h1><p id="subtitle"></p></div>
   </div>
   <div id="progwrap" class="hide">
     <div class="progline"><span id="progtext"></span><span id="progright"></span></div>
@@ -230,13 +230,12 @@ th{color:var(--fg3); font-weight:600; font-size:11px; text-transform:uppercase; 
 <!-- ───────────── welcome ───────────── -->
 <main id="welcome" class="screen hide">
   <div class="card intro">
-    <h2>Droplet morphology labelling</h2>
+    <h2>BSA droplet morphology labelling</h2>
     <p>
-      You'll see one microscope image of a droplet at a time and choose which of six
-      categories it belongs to (plus <i>unsure</i>). The aim is at least
-      <b id="w-target">200</b> droplets in each category — roughly
-      <b>1,300–1,800</b> images in total. It goes quickly once you get going:
-      press <b>1–7</b> and it advances by itself.
+      You'll see one microscope image of a droplet at a time and choose which of seven
+      categories it belongs to (plus <i>unsure / don't include</i>). The aim is at least
+      <b id="w-target">400</b> droplets in each category. It goes quickly once you get going:
+      press <b>1–8</b> and it advances by itself.
     </p>
     <p class="muted">You can stop and come back whenever you like. Nothing is ever lost, and anything
       you've already filed can be moved to a different category later from the Review tab.</p>
@@ -252,7 +251,7 @@ th{color:var(--fg3); font-weight:600; font-size:11px; text-transform:uppercase; 
     <div id="fs-ok">
       <ol class="steps">
         <li>Type your name below.</li>
-        <li>Click <b>Choose save file</b> and save a file called <b>droplet-labels.json</b> somewhere you'll find it again, like your Desktop.</li>
+        <li>Click <b>Choose save file</b> and save a file called <b>bsa-droplet-labels.json</b> somewhere you'll find it again, like your Desktop.</li>
         <li>Label away. Every single answer is written into that file the moment you make it — there is no save button and nothing to remember.</li>
         <li>When you're done (or want to send progress), email that file back.</li>
       </ol>
@@ -282,7 +281,7 @@ th{color:var(--fg3); font-weight:600; font-size:11px; text-transform:uppercase; 
 
   <div class="card">
     <h3>Restore from a file</h3>
-    <p class="muted">Changed computer, or something went wrong? Open a <b>droplet-labels.json</b>
+    <p class="muted">Changed computer, or something went wrong? Open a <b>bsa-droplet-labels.json</b>
       you saved earlier and carry on from exactly where it stopped.</p>
     <div class="btnrow"><button class="ghost" id="btn-import2">Open a saved file</button></div>
   </div>
@@ -311,7 +310,7 @@ th{color:var(--fg3); font-weight:600; font-size:11px; text-transform:uppercase; 
     </div>
   </section>
   <section class="panel">
-    <h3>Which is it? <i class="muted">— press 1–7</i></h3>
+    <h3>Which is it? <i class="muted">— press 1–8</i></h3>
     <div id="cats" class="cats"></div>
     <div class="tallyfoot">
       <span id="tallysum"></span>
@@ -330,7 +329,7 @@ th{color:var(--fg3); font-weight:600; font-size:11px; text-transform:uppercase; 
       <button class="ghost tiny" id="rev-none">Clear selection</button>
     </div>
   </div>
-  <p class="muted revhint">Click tiles to select them (shift-click for a range), then press <b>1–7</b> or use the bar at the bottom to move them somewhere else.</p>
+  <p class="muted revhint">Click tiles to select them (shift-click for a range), then press <b>1–8</b> or use the bar at the bottom to move them somewhere else.</p>
   <div id="revgrid" class="revgrid"></div>
   <div id="revmore" class="revmore"></div>
   <div id="movebar" class="movebar hide">
@@ -350,11 +349,11 @@ th{color:var(--fg3); font-weight:600; font-size:11px; text-transform:uppercase; 
     <div class="sheethead"><h2>Guide</h2><button class="ghost" id="guide-close">Close</button></div>
     <p class="muted">One droplet per image. Label what you can actually see, not what you think it
       ought to be. If two categories both seem right, pick the closer one and move on — you can
-      revisit it from Review later. If you genuinely can't tell, use <b>Unsure</b>.</p>
+      revisit it from Review later. If you genuinely can't tell, use <b>Unsure / don't include</b>.</p>
     <div id="guidebody"></div>
     <h3 style="margin:18px 0 8px">Keyboard</h3>
     <div class="keys">
-      <kbd>1</kbd><span>…<kbd>7</kbd> choose a category</span>
+      <kbd>1</kbd><span>…<kbd>8</kbd> choose a category</span>
       <kbd>0</kbd><span>clear this one</span>
       <kbd>←</kbd><span>go back / <kbd>→</kbd> or <kbd>space</kbd> go forward</span>
       <kbd>R</kbd><span>review board</span>
@@ -387,30 +386,27 @@ const CATS = [
   { id:'diffuse_aggregate', name:'Diffuse / small aggregate', desc:'Faint cloudy or mottled texture, or lots of tiny irregular specks, with nothing you could draw an outline around.' },
   { id:'small_llps',        name:'Small LLPS',                desc:'Many small, round, sharply defined droplets inside the droplet.' },
   { id:'large_llps',        name:'Large LLPS',                desc:'A few large, round, sharply defined droplets inside the droplet.' },
-  { id:'unsure',            name:'Unsure',                    desc:"Can't tell, or the image is unusable." },
+  { id:'banana',            name:'Banana morphology',         desc:'One bright, dense crescent- or lens-shaped body pressed against one side (or edge) of the droplet, with the rest of the droplet dark. It has a smooth curved outline — like a banana, a half-moon or a cap. A few faint round blobs elsewhere are fine.' },
+  { id:'unsure',            name:"Unsure / don't include",    desc:"Can't tell, or the image is unusable (not a proper droplet, clipped, an artefact). These are left out of the data." },
 ];
 const COLORS = {
   homogeneous:'#5c6675', giant_precipitate:'#b02a37', aggregate_network:'#d2541c',
-  diffuse_aggregate:'#b4700c', small_llps:'#2563eb', large_llps:'#6d3bd4', unsure:'#8d96a6',
+  diffuse_aggregate:'#b4700c', small_llps:'#2563eb', large_llps:'#6d3bd4', banana:'#0e8a7d', unsure:'#8d96a6',
 };
 const CAT_IDS = CATS.map(c => c.id);
 const REAL = CAT_IDS.filter(c => c !== 'unsure');
 const FLOOR = 0.25;
+/* Hidden strata (never shown): B-c / B-b = banana detector confident / borderline;
+   N-* = not flagged by the detector, split by the 5-class probe's call. Priors are a rough
+   starting guess and are washed out by the labeller's own answers within a few hundred images. */
 const PRIOR = {
-  'H':   { homogeneous:3.0 },
-  'W':   { diffuse_aggregate:1.5, homogeneous:1.5 },
-  'S-s': { small_llps:1.0, large_llps:1.0, giant_precipitate:0.5, diffuse_aggregate:0.5 },
-  'S-m': { large_llps:1.5, giant_precipitate:1.5 },
-  'S-l': { giant_precipitate:2.0, large_llps:1.0 },
-  'F-s': { small_llps:1.5, large_llps:1.5 },
-  'F-m': { large_llps:2.0, small_llps:1.0 },
-  'F-l': { large_llps:2.0, giant_precipitate:1.0 },
-  'P-s': { small_llps:2.0, diffuse_aggregate:1.0 },
-  'P-m': { small_llps:2.0, diffuse_aggregate:1.0 },
-  'P-l': { small_llps:1.5, aggregate_network:0.75, diffuse_aggregate:0.75 },
-  'A-s': { diffuse_aggregate:1.5, aggregate_network:1.5 },
-  'A-m': { aggregate_network:2.0, diffuse_aggregate:1.0 },
-  'A-l': { aggregate_network:2.0, giant_precipitate:1.0 },
+  'B-c':   { banana:4.0, giant_precipitate:0.5, large_llps:0.5 },
+  'B-b':   { banana:1.0, giant_precipitate:1.0, large_llps:1.0, homogeneous:0.5 },
+  'N-hom': { homogeneous:3.0 },
+  'N-dif': { diffuse_aggregate:1.5, homogeneous:1.5, small_llps:0.5 },
+  'N-sml': { small_llps:2.0 },
+  'N-lrg': { large_llps:2.0, homogeneous:0.5, giant_precipitate:0.5 },
+  'N-gnt': { giant_precipitate:1.5, large_llps:0.75, aggregate_network:0.75 },
 };
 const BACKUP_NAG = 120;   // labels without a file handle before we start nagging
 
@@ -463,7 +459,7 @@ const IDB = {
   async open() {
     if (this.db) return this.db;
     this.db = await new Promise((res, rej) => {
-      const r = indexedDB.open('droplet-labels', 1);
+      const r = indexedDB.open('bsa-droplet-labels', 1);
       r.onupgradeneeded = () => r.result.createObjectStore('kv');
       r.onsuccess = () => res(r.result);
       r.onerror = () => rej(r.error);
@@ -524,7 +520,7 @@ async function persist() {
 async function reconnectFile() {
   try {
     const h = await window.showSaveFilePicker({
-      suggestedName: 'droplet-labels.json',
+      suggestedName: 'bsa-droplet-labels.json',
       types: [{ description: 'Labelling progress', accept: { 'application/json': ['.json'] } }],
     });
     UI.handle = h;
@@ -538,8 +534,8 @@ async function reconnectFile() {
 /* ───────────────────────── project ───────────────────────── */
 function freshState(name, target, seed) {
   return {
-    version: 1, app: 'droplet-goldset',
-    name: name || '', target: target || 200, seed,
+    version: 1, app: 'droplet-bsa',
+    name: name || '', target: target || 400, seed,
     created: nowISO(), updated: nowISO(),
     order: [], ptr: {}, assign: {}, meta: {}, cursor: 0, nLabels: 0,
   };
@@ -660,9 +656,9 @@ function paintTally() {
     if (bar) bar.style.width = real ? Math.min(100, 100 * n / t) + '%' : '0%';
   });
   const needed = REAL.reduce((s, k) => s + Math.max(0, t - (c[k] || 0)), 0);
-  $('#progtext').textContent = `${ST.nLabels.toLocaleString()} labelled · ${done} of 6 categories complete`;
+  $('#progtext').textContent = `${ST.nLabels.toLocaleString()} labelled · ${done} of ${REAL.length} categories complete`;
   $('#progright').textContent = needed ? `${needed.toLocaleString()} still needed` : 'all done — thank you!';
-  $('#progfill').style.width = (100 * (1 - needed / (6 * t))).toFixed(1) + '%';
+  $('#progfill').style.width = (100 * (1 - needed / (REAL.length * t))).toFixed(1) + '%';
   $('#tallysum').textContent = `${ST.nLabels.toLocaleString()} of ${CANDS.length.toLocaleString()} images`;
 }
 
@@ -694,13 +690,13 @@ function show(pos) {
   UI.pos = Math.max(0, Math.min(pos, ST.order.length - 1));
   ST.cursor = UI.pos;
   const i = ST.order[UI.pos];
-  $('#tile').src = `img/${i}.png`;
+  $('#tile').src = `bsa_img/${i}.png`;
   UI.shownAt = performance.now();
   applyView(); paintChoice(); paintTally();
   $('#posn').textContent = `${UI.pos + 1} / ${ST.order.length}`;
   for (let k = 1; k <= 5; k++) {        // warm the next few so it never waits
     const j = ST.order[UI.pos + k];
-    if (j != null) new Image().src = `img/${j}.png`;
+    if (j != null) new Image().src = `bsa_img/${j}.png`;
   }
 }
 function paintChoice() {
@@ -772,7 +768,7 @@ function renderRev() {
   }
   page.forEach((i, k) => {
     const c = el('div', 'rcard' + (UI.rev.sel.has(i) ? ' sel' : ''));
-    c.innerHTML = `<img loading="lazy" src="img/${i}.png" alt=""><span class="tick"></span>`;
+    c.innerHTML = `<img loading="lazy" src="bsa_img/${i}.png" alt=""><span class="tick"></span>`;
     c.onclick = e => clickTile(i, k, e);
     grid.appendChild(c);
   });
@@ -827,11 +823,12 @@ function unassignSelection() {
 
 /* ───────────────────────── summary & export ───────────────────────── */
 function csvText() {
-  const cols = ['pool_idx', 'category', 'old_class', 'stratum', 'exp', 'wl',
-    'was_hand_labelled', 'is_test_exp', 'dom_area_frac', 'ts'];
+  const cols = ['pool_idx', 'category', 'include', 'stratum', 'banana_tier', 'probe_class', 'probe_pmax',
+    'bright_frac', 'exp', 'wl', 'ts'];
   const rows = Object.keys(ST.assign).map(Number).sort((a, b) => a - b).map(i => {
     const m = CAND[i], md = ST.meta[String(i)] || {};
-    return [i, ST.assign[String(i)], m.old, m.stratum, m.exp, m.wl, m.hand, m.is_test_exp, m.dom_area_frac, md.ts || ''].join(',');
+    const cat = ST.assign[String(i)];
+    return [i, cat, cat === 'unsure' ? 0 : 1, m.stratum, m.tier, m.pred, m.pmax, m.bright, m.exp, m.wl, md.ts || ''].join(',');
   });
   return cols.join(',') + '\n' + rows.join('\n') + '\n';
 }
@@ -851,7 +848,7 @@ function openStats() {
   for (const k in ST.assign) {
     const m = CAND[k], cat = ST.assign[k];
     exps[cat].add(m.exp);
-    cross[cat][m.old] = (cross[cat][m.old] || 0) + 1;
+    cross[cat][m.stratum] = (cross[cat][m.stratum] || 0) + 1;
   }
   const parts = [`<div class="rephead"><div><h2>${esc(ST.name || 'Progress')}</h2>
     <div class="sub">${ST.nLabels.toLocaleString()} labelled · ${ST.order.length.toLocaleString()} seen ·
@@ -862,10 +859,10 @@ function openStats() {
     const cls = !real ? '' : n >= t ? 'good' : n >= t * .5 ? 'warn' : 'bad';
     return `<div class="stat"><div class="k" style="color:${COLORS[cat.id]}">${esc(cat.name)}</div>
       <div class="v ${cls}">${n}</div>
-      <div class="n">${real ? (n >= t ? 'target met' : `${t - n} to go`) : 'no target'} · ${exps[cat.id].size} experiments</div></div>`;
+      <div class="n">${real ? (n >= t ? 'target met' : `${t - n} to go`) : 'no target'}</div></div>`;
   }).join('') + '</section>');
 
-  const olds = ['H', 'W', 'S', 'F', 'P', 'A'];
+  const olds = STRATA_KEYS;
   let tbl = '<table><tr><th>category</th>' + olds.map(o => `<th>${o}</th>`).join('') + '<th>total</th></tr>';
   CATS.forEach(cat => {
     const row = cross[cat.id] || {};
@@ -874,10 +871,11 @@ function openStats() {
       olds.map(o => `<td>${row[o] || ''}</td>`).join('') + `<td><b>${tot}</b></td></tr>`;
   });
   tbl += '</table>';
-  parts.push(`<section class="wrap"><h3>Spread across the earlier labels</h3>${tbl}
-    <div class="cmlegend">Columns are an older, rougher set of labels kept only for checking coverage
-    (H even, W faint texture, S one body, F a few bodies, P many specks, A ragged). They never affect
-    what you are shown, and you are not expected to agree with them.</div></section>`);
+  parts.push(`<section class="wrap"><h3>Spread across the hidden sampling groups</h3>${tbl}
+    <div class="cmlegend">Columns are the automatic groups the images were drawn from, kept only for checking
+    coverage: B-c / B-b = an automatic banana detector's confident / borderline calls, N-* = everything else,
+    split by a rough automatic classifier (hom, dif, sml, lrg, gnt). They never affect what you are shown,
+    and you are not expected to agree with them.</div></section>`);
 
   parts.push(`<section class="wrap"><h3>Send your work</h3>
     <div class="repfoot">
@@ -889,8 +887,8 @@ function openStats() {
     re-opened later to carry on from exactly this point.</p></section>`);
 
   $('#statsbody').innerHTML = parts.join('');
-  $('#dl-json').onclick = () => { UI.lastBackup = ST.nLabels; download(JSON.stringify(ST), `droplet-labels-${safeName()}.json`, 'application/json'); persist(); };
-  $('#dl-csv').onclick = () => download(csvText(), `droplet-labels-${safeName()}.csv`, 'text/csv');
+  $('#dl-json').onclick = () => { UI.lastBackup = ST.nLabels; download(JSON.stringify(ST), `bsa-droplet-labels-${safeName()}.json`, 'application/json'); persist(); };
+  $('#dl-csv').onclick = () => download(csvText(), `bsa-droplet-labels-${safeName()}.csv`, 'text/csv');
   $('#btn-back2').onclick = () => { screen('label'); show(UI.pos); };
 }
 
@@ -911,20 +909,20 @@ function begin(state) {
 async function startNew() {
   const name = $('#in-name').value.trim();
   const seed = (Math.random() * 1e9) >>> 0;
-  begin(freshState(name, 200, seed));
+  begin(freshState(name, 400, seed));
 }
 
 function validState(s) {
-  return s && typeof s === 'object' && s.app === 'droplet-goldset' && s.assign && s.order && s.seed != null;
+  return s && typeof s === 'object' && s.app === 'droplet-bsa' && s.assign && s.order && s.seed != null;
 }
 
 async function boot() {
   injectGamma(); buildCatButtons(); wireAll();
-  CANDS = await (await fetch('candidates.json', { cache: 'force-cache' })).json();
+  CANDS = await (await fetch('bsa_candidates.json', { cache: 'force-cache' })).json();
   CANDS.forEach(c => CAND[c.i] = c);
   $('#splash').remove();
   $('#bar').classList.remove('hide');
-  $('#w-target').textContent = '200';
+  $('#w-target').textContent = '400';
 
   UI.hasFS = typeof window.showSaveFilePicker === 'function';
   $('#fs-ok').classList.toggle('hide', !UI.hasFS);
@@ -983,7 +981,7 @@ function importFile() {
       if (UI.hasFS) {
         try {
           UI.handle = await window.showSaveFilePicker({
-            suggestedName: f.name || 'droplet-labels.json',
+            suggestedName: f.name || 'bsa-droplet-labels.json',
             types: [{ description: 'Labelling progress', accept: { 'application/json': ['.json'] } }],
           });
           await IDB.set('handle', UI.handle);
@@ -1001,7 +999,7 @@ function wireAll() {
     if (UI.hasFS) {
       try {
         UI.handle = await window.showSaveFilePicker({
-          suggestedName: 'droplet-labels.json',
+          suggestedName: 'bsa-droplet-labels.json',
           types: [{ description: 'Labelling progress', accept: { 'application/json': ['.json'] } }],
         });
         await IDB.set('handle', UI.handle);
@@ -1048,12 +1046,12 @@ function wireAll() {
       return;
     }
     if (UI.tab === 'review') {
-      if (k >= '1' && k <= '7') { e.preventDefault(); return moveSelection(CATS[+k - 1].id); }
+      if (k >= '1' && +k <= CATS.length) { e.preventDefault(); return moveSelection(CATS[+k - 1].id); }
       if (k === 'Backspace' || k === 'Delete') { e.preventDefault(); return unassignSelection(); }
       return;
     }
     if (UI.tab !== 'label') return;
-    if (k >= '1' && k <= '7') { e.preventDefault(); return assign(CATS[+k - 1].id); }
+    if (k >= '1' && +k <= CATS.length) { e.preventDefault(); return assign(CATS[+k - 1].id); }
     if (k === '0') { e.preventDefault(); return clearOne(); }
     if (k === 'ArrowRight' || k === ' ' || k === 'Enter') { e.preventDefault(); return show(UI.pos + 1); }
     if (k === 'ArrowLeft') { e.preventDefault(); return show(UI.pos - 1); }
